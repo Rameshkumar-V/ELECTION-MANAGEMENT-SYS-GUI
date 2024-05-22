@@ -1,3 +1,11 @@
+"""
+    DEVELOPED BY : RAMESHKUMAR V
+    DATE         : MAY 1-10 2024
+    VERSION      : final  
+"""
+
+
+import clear_frame 
 import customtkinter as ck
 import tkinter as tk
 from tkinter import messagebox,filedialog
@@ -5,160 +13,232 @@ from PIL import Image, ImageTk
 import time
 import io
 from tkinter import ttk
-import mysql.connector
+import sys
+import os
+import sqlite3 as sql
+
+
+
+# GLOBALS
+global setbuttons
 global mainwindow
+global id_remover
 
-con = mysql.connector.connect(
-    host='localhost',
-    user='rameshkumar',
-    password='',
-    database='votingapplication'
-)
 
-root1 = tk.Tk() #ck.CTk()
-root1.title('mainpage')
-root1.geometry('2000x1000')
-root1.config(background="#93FBF2")
-root1.state("zoomed")
+# RESOURCES PATH
+def resources_path(relative_path):
+    try:
+        base_path = sys._MEIPASS  # For PyInstaller
+    except Exception:
+        base_path = os.path.abspath(".")
 
-image = Image.open("setbut.png").resize((40, 40))
-photo = ImageTk.PhotoImage(image)
+    return os.path.join(base_path, relative_path)
 
-image2 = Image.open("voteicon.png").resize((80, 80))
-photo2 = ImageTk.PhotoImage(image2)
+# DATABASE 
 
-global nominee_1, nominee_2, nominee_3, nominee_4, nominee_5, ID, PASSWORD
+global con
+con=sql.connect(resources_path("assets\\votingdb.db"))
+
+# ALL NEEDED DATA FILE
+
+
+
+global ID, PASSWORD
+global NOMINEES_INFO
 
 totalnomines_counter = 0
 
-nominee_1 = 0
-nominee_2 = 0
-nominee_3 = 0
-nominee_4 = 0
-nominee_5 = 0
 
-global nominee_1_name, nominee_2_name, nominee_3_name, nominee_4_name, nominee_5_name
+NOMINEES_INFO: list = []
+
+IMAGES: list = []
+
 ID = None
 PASSWORD = None
-nominee_1_name = None
-nominee_2_name = None
-nominee_3_name = None
-nominee_4_name = None
-nominee_5_name = None
 
-# nota
-global photo_5_, photo_4_, photo_3_, photo_2_, photo_1_
 
-photo_1_ = ''
-photo_2_ = ''
-photo_3_ = ''
-photo_4_ = ''
-photo_5_ = ''
+
 
 
 def read_refresher_for_count():
     server = con.cursor()
 
-    global nominee_1, nominee_2, nominee_3, nominee_4, nominee_5, ID, PASSWORD, nominee_1_name, nominee_2_name, nominee_3_name, nominee_4_name, nominee_5_name
-    global logo_1, logo_2, logo_2, logo_3, logo_4, logo_5
-    global logo_1_, logo_2_, logo_3_, logo_4_, logo_5_
-    global photo_1_, photo_2_, photo_3_, photo_4_, photo_5_
-
-    sql = "select * from image"
-    server.execute(sql)
-    nomdatas = server.fetchall()
-    #print(nomdatas[0][1])
-    logo_1 = nomdatas[0][1]
-
-    logo_2 = nomdatas[1][1]
-    logo_3 = nomdatas[2][1]
-    logo_4 = nomdatas[3][1]
-    logo_5 = nomdatas[4][1]
-
+   
+   
 
     sql = "select * from nominees"
     server.execute(sql)
     nomdatas = server.fetchall()
+    global NOMINEES_INFO
+    NOMINEES_INFO=[]
 
-    nominee_1_name = nomdatas[0][1]
-    nominee_2_name = nomdatas[1][1]
-    nominee_3_name = nomdatas[2][1]
-    nominee_4_name = nomdatas[3][1]
-    nominee_5_name = nomdatas[4][1]
 
-    nominee_1 = int(nomdatas[0][2])
-    nominee_2 = int(nomdatas[1][2])
-    nominee_3 = int(nomdatas[2][2])
-    nominee_4 = int(nomdatas[3][2])
-    nominee_5 = int(nomdatas[4][2])
+    for j in nomdatas:
+        NOMINEES_INFO.append({
+            'NOMINEE_ID':j[0],
+            'NOMINEE_NAME' : j[1],
+            'NOMINEE_RESULT': j[2],
+            'NOMINEE_LOGO': j[3]
+        })
 
-    try:
+        
 
-        logo_1_ = Image.open(io.BytesIO(logo_1)).resize((80, 80))
-        photo_1_ = ImageTk.PhotoImage(logo_1_)
+   
 
-        logo_2_ = Image.open(io.BytesIO(logo_2)).resize((80, 80))
+        
+    
 
-        photo_2_ = ImageTk.PhotoImage(logo_2_)
+     
 
-        logo_3_ = Image.open(io.BytesIO(logo_3)).resize((80, 80))
-        photo_3_ = ImageTk.PhotoImage(logo_3_)
 
-        logo_4_ = Image.open(io.BytesIO(logo_4)).resize((80, 80))
-        photo_4_ = ImageTk.PhotoImage(logo_4_)
 
-        logo_5_ = Image.open(io.BytesIO(logo_5)).resize((80, 80))
-        photo_5_ = ImageTk.PhotoImage(logo_5_)
-    except Exception as e:
-        print("error", type(e))
 
-global setbuttons
+
+
+
+
+
+
+
+
+
+window = tk.Tk()
+root1=window
+ #ck.CTk()
+window.title('mainpage')
+window.geometry('2000x1000')
+window.config(background="#93FBF2")
+window.state("zoomed")
+
+# VOTING PAGE
+
+
+
+
+
+
+def voting_page():
+    root1=window
+     # Fills the available space
+
+    votingframe =ck. CTkScrollableFrame(master=root1)
+    votingframe.pack(fill="both", expand=True)
+   
+    def put_vote(b):
+        VOTED=None
+        for nom in NOMINEES_INFO:
+            print('b is =',b)
+            print('nom=',nom['NOMINEE_ID'])
+
+            if int(nom['NOMINEE_ID'])==int(b):
+                
+                nom['NOMINEE_RESULT']=nom['NOMINEE_RESULT']+1
+                
+                messagebox.showinfo("Message", f" Voted Successfully : {nom['NOMINEE_RESULT']} ! ")
+
+                try:
+                    server = con.cursor()
+
+                    sql = "UPDATE nominees SET nomresult=? WHERE id=?"
+                    data = ( nom['NOMINEE_RESULT'],b)
+
+                    server.execute(sql, data)
+                    response=server.fetchall()
+                    
+
+                    con.commit()
+
+                    read_refresher_for_count()
+
+                except Exception as e:
+                    print(e)
+                    messagebox.showwarning('warning',f'{type(e).__name__}')
+        else:
+            print('error: voter id not found')
+
+        
+
+        
+
+        votingframe.destroy()
+        mainwindow()
+        #voting_page()
+
+
+
+
+    OFFSET=0
+    ROW=0
+    image2=Image.open(resources_path("assets//voteicon.png")).resize((50,50))
+    photo2=ImageTk.PhotoImage(image2)
+    for i in NOMINEES_INFO:
+        
+       
+        
+
+        NOM_LABEL= ck.CTkLabel(votingframe, text=f"NOMINEE {ROW} : " + i['NOMINEE_NAME'],height=5,width=50, font=("Times New Roman", 25, "bold"))
+        nominee_logo_data = i['NOMINEE_LOGO']
+
+
+        logo_image = Image.open(io.BytesIO(nominee_logo_data))
+        logo_image_resized = logo_image.resize((80, 80))
+        logo_tk = ImageTk.PhotoImage(logo_image_resized)
+
+
+
+        NOM_LOGO=tk.Label(votingframe, image=logo_tk)
+        NOM_LOGO.image = logo_tk 
+        NOM_BTN=tk.Button(votingframe, text='vote',image=photo2,command=lambda: (votingframe.destroy(),put_vote(int(i['NOMINEE_ID']))))
+        NOM_BTN.image=photo2
+
+        NOM_LABEL.grid(row=ROW,column=1,padx=100,pady=20)
+        NOM_LOGO.grid(row=ROW,column=0,padx=100,pady=20)
+        NOM_BTN.grid(row=ROW,column=2,padx=100,pady=20)
+
+        OFFSET=OFFSET+1
+        ROW=ROW+1
+
+
+
+
+# SETTING 
 
 def setting(mainframe):
+    
 
-    global security,setbuttons
+    global security,setbuttons,fun
 
 
-    def security(var):
+
+
+    def security(fun):
+        root1=window
+
         mainframe.destroy()
         securityframe=tk.Frame(root1,background="#D6F6F2")
         securityframe.pack(anchor="center",pady=200)
+
         def process():
                 a = str(id_entry.get())
                 b = str(pass_entry.get())
+
                 if a == 'rkking' and b == '1234':
+
                     messagebox.showinfo("Message", "Access Granted ! ")
                     securityframe.destroy()
-                    if var==1:
-                        id_appending()
-                        print("function appending executed ! ")
-                    if var==2:
-                        reset()
-                        print("reset function executed !")
-                    if var==3:
-                        show_results()
-                    if var==4:
-                        nameset()
-                    if var==5:
-                        imagechange()
-                    if var==6:
-                        show_logs()
 
-
-
-
+                    return fun()
+                
                 else:
                     messagebox.showerror("Message", "Access Denied ! ")
 
 
 
-        global id_label, pass_label, id_entry, pass_entry, exit_button, buttoning
+        
         id_label = ck.CTkLabel(securityframe, text="ENTER ID       ", font=('', 40, "bold"))
-
         pass_label = ck.CTkLabel(securityframe, text="ENTER PASS  ", font=('', 40, "bold"))
 
         id_entry = ck.CTkEntry(securityframe, height=40, width=200)
-
         pass_entry = ck.CTkEntry(securityframe, height=40, width=200)
 
         buttoning = ck.CTkButton(securityframe, text="Proceed ! ", command=process)
@@ -178,33 +258,32 @@ def setting(mainframe):
 
 
     def resetall():
-        global reset
+       
         def reset():
 
             server = con.cursor()
             sql = "update nominees set nomresult=0"
             server.execute(sql)
             con.commit()
-
             messagebox.showinfo("Message", "Reseted Suceesfully")
 
+        security(reset)
 
-            pass
-        security(2)
-    def append():
-        security(1)
-        global id_appending
-        def add():
 
-            # exit_button.configure(command=destroyer5)
-            m: str = str(adhaar_entry_.get()) if len((adhaar_entry_.get())) >= 10 else messagebox.showerror('message',
+            
+    def Add_voter():
+       
+        def add_to_DB():
+
+ 
+            m: str = str(adhaar_entry_.get()) if str(adhaar_entry_.get()).strip()!='' else messagebox.showerror('message',
                                                                                                             'Id missing')
-            n: str = str(dob_entry_.get()) if len(str(dob_entry_.get())) >= 9 else messagebox.showerror('message',
+            n: str = str(dob_entry_.get()) if str(dob_entry_.get()).strip()!='' else messagebox.showerror('message',
                                                                                                         'Passward missing')
-            if len(m) >= 10 and len(n) >= 9:
+            if m and n:
 
                 server = con.cursor()
-                sql = "insert into voters(votername,voterpass) values (%s,%s)"
+                sql = "insert into voters(votername,voterpass,STATUS) values (?,?,'notvoted')"
                 user = (m, n)
                 server.execute(sql, user)
                 con.commit()
@@ -216,6 +295,10 @@ def setting(mainframe):
                 messagebox.showwarning('message', 'id and pass is incorrect they extend long ! ')
 
         def id_appending():
+            root1=window
+            global adhaar_fetcher, dob_fetcher, adde, adhaar_entry_, dob_entry_
+
+
             addingfram=tk.Frame(root1,bg="#D6F6F2")
             addingfram.pack(anchor="center")
 
@@ -225,15 +308,14 @@ def setting(mainframe):
 
 
             #exit_button.configure(command=destroyer5)
-            global adhaar_fetcher, dob_fetcher, adde, adhaar_entry_, dob_entry_
-            adhaar_fetcher = ck.CTkLabel(addingfram, text="ENTER ADHAAR NUMBER", font=('', 30, "bold"))
+            adhaar_fetcher = ck.CTkLabel(addingfram, text="USERNAME", font=('', 30, "bold"))
 
             adhaar_entry_ = ck.CTkEntry(addingfram, height=40, width=200)
 
-            dob_fetcher = ck.CTkLabel(addingfram, text="ENTER DOB *(DD/MM/YYYY) ", font=('', 28, "bold"))
-            dob_entry_ = ck.CTkEntry(addingfram, show="*", height=40, width=200)
+            dob_fetcher = ck.CTkLabel(addingfram, text="PASSWORD", font=('', 28, "bold"))
+            dob_entry_ = ck.CTkEntry(addingfram,  height=40, width=200)
 
-            adde = ck.CTkButton(addingfram, text="ADD", command=add)
+            adde = ck.CTkButton(addingfram, text="ADD", command=add_to_DB)
 
             adhaar_fetcher.grid(row=3,column=2,padx=40,pady=20)
             adhaar_entry_.grid(row=3,column=3,padx=40,pady=0)
@@ -242,10 +324,12 @@ def setting(mainframe):
             dob_entry_.grid(row=4,column=3,padx=40,pady=0)
 
             adde.grid(row=6,column=3,padx=40,pady=20)
+        security(id_appending)
 
 
     def logs():
-        global show_logs
+        root1=window
+        
         def show_logs():
             logsframe=tk.Frame(root1,bg="#D6F6F2")
             logsframe.pack(anchor="center",pady=100)
@@ -285,97 +369,101 @@ def setting(mainframe):
             table.column('LOG TIME', width=400, minwidth=400, anchor='center')
             j = 1
             for i in (file):
-                file = ["hello world"]
+                
                 table.insert('', j, values=(i))
                 j = j + 1
-            # back_button=ck.CTkButton(root1,text='BACK',command=destroytable)
-            # back_button.pack()
+         
+        security(show_logs)
 
-            # pass
-        security(6)
     def results():
-        global show_results
+        
         def show_results():
             resultpage=tk.Frame(root1,bg="#D6F6F2")
-            resultpage.pack(anchor="center")
+            resultpage.pack(anchor="center",
+                            expand=True,
+                            fill='both')
 
-            exit_button = ck.CTkButton(resultpage, text="EXIT",
+            exit_button = ck.CTkButton(resultpage,
+                                        text="EXIT",
                                        command=lambda: (resultpage.destroy(), mainwindow()))
-            exit_button.pack(anchor='nw')
+            exit_button.pack(anchor='center',fill='both')
+           
 
-
-            #exit_button.configure(command=exit6)
+         
 
             read_refresher_for_count()
-            print("nominee is ", nominee_1)
-            global result_label_nom1, result_label_nom2, result_label_nom3, result_label_nom4, result_label_nom5, result_winner
-            result_label_nom1 = ck.CTkLabel(resultpage, text=("NOMINEE 1 : " + str(nominee_1)),
-                                            font=("Times New Roman", 50, "bold"))
-            result_label_nom1.pack(pady=20)
+            table = ttk.Treeview(resultpage,padding=20,height=1000)
+            table['show'] = 'headings'
+            table.pack(fill='both')
+            table['columns'] = ['SI NO', 'NAME','RANK','RESULT']
 
-            result_label_nom2 = ck.CTkLabel(resultpage, text=("NOMINEE 2 : " + str(nominee_2)),
-                                            font=("Times New Roman", 50, "bold"))
-            result_label_nom2.pack(pady=20)
+            table.heading('SI NO', text='SI NO')
+            table.heading('NAME', text='NAME')
+            table.heading('RANK', text='RANK')
+            table.heading('RESULT', text='RESULT')
+            table_design = ttk.Style(resultpage)
+            table_design.theme_use('clam')
+            #table_design.configure('Custom.Treeview',rowheight=100, foreground=('black'), font=('Times New Roman', 40, 'bold'))
+            table_design.configure('.',rowheight=100, foreground=('black'), font=('Times New Roman', 20))
+            table_design.configure('Treeview.Heading', foreground=('red'), font=('Times New Roman', 25, 'bold'))
+            
 
-            result_label_nom3 = ck.CTkLabel(resultpage, text=("NOMINEE 3 : " + str(nominee_3)),
-                                            font=("Times New Roman", 50, "bold"))
-            result_label_nom3.pack(pady=20)
+            ROW=1
+            file=NOMINEES_INFO
 
-            result_label_nom4 = ck.CTkLabel(resultpage, text=("NOMINEE 4 : " + str(nominee_4)),
-                                            font=("Times New Roman", 50, "bold"))
-            result_label_nom4.pack(pady=20)
-            result_label_nom5 = ck.CTkLabel(resultpage, text=("NOMINEE 5: " + str(nominee_5)),
-                                            font=("Times New Roman", 50, "bold"))
-            result_label_nom5.pack(pady=20)
+            table.column('SI NO',width=400, minwidth=400, anchor='center')
+            table.column('NAME', width=400, minwidth=400, anchor='center')
+            table.column('RANK', width=400, minwidth=400, anchor='center')
+            table.column('RESULT', width=400, minwidth=400, anchor='center')
+            
+            
+            for i in (file):
+                
+                table.insert('', ROW, values=(i['NOMINEE_NAME'],'a','b','c'))
+                ROW = ROW + 1
+            
+           
+                
+
             winner: str = None
 
 
-            if nominee_1 == nominee_2 == nominee_3 == nominee_4 == nominee_5:
-                winner = "Tied the Election ! "
-            if nominee_1 >=(nominee_2 >= nominee_3 >= nominee_4 >= nominee_5):
-                winner = "NOMINEE 1"
-            if nominee_2 >= (nominee_1 >= nominee_3 >= nominee_4 >= nominee_5):
-                winner = "NOMINEE 2"
-            if nominee_3 >= (nominee_1 >= nominee_2 >= nominee_4 >= nominee_5):
-                winner = "NOMINEE 3"
-            if nominee_4 >= (nominee_1 >= nominee_2 >= nominee_3 >= nominee_5):
-                winner = "NOMINEE 4"
-            if nominee_5 >= (nominee_1 >= nominee_2 >= nominee_3 >= nominee_4):
-                winner = "NOMINEE 5"
 
             global result_winner
             result_winner = ck.CTkLabel(resultpage, text=f"WINNER : {winner}", font=("Times New Roman", 50, "bold"))
             result_winner.pack(anchor='center')
             winner = None
-        security(3)
+        #security(3)
+        mainframe.destroy()
+        show_results()
+
+
     def settings_for_self_image():
-        global imagechange
-        security(5)
+       
+        
 
         def imagechange():
 
             def pathselector():
                 def process(path):
-
                     def convert_binary(filepath):
                         try:
                             with open(filepath, 'rb') as f:
                                 binarydata = f.read()
                                 return binarydata
                         except Exception as e:
-
                             messagebox.showerror('warning on binary function !', f'{e}')
 
+
                     def update():
+
                         try:
                             #sql=("update image set iim=(%s) where iid=(%s)")
                             paths=convert_binary(path)
-                            print("path is ",paths)
                             ids=int(c.get())
-                            print(c,"c value is ")
                             values=(paths,)
                             server = con.cursor()
-                            sql = "update image set iim=(%s) where iid=(%s)"
+                            sql = "update image set iim=(?) where iid=(?)"
 
                             server.execute(sql,(paths,ids))
                             con.commit()
@@ -398,7 +486,7 @@ def setting(mainframe):
             global c
 
             tk.Label(imageframe,text='SELECT NOMINEE ID ',font=('',20)).grid(row=1,column=2,padx=40,pady=10)
-            c=ttk.Combobox(imageframe,values=(['1','2','3','4','5']))
+            c=ttk.Combobox(imageframe,values=([i['NOMINEE_ID'] for i in NOMINEES_INFO]))
             c.grid(row=2,column=2,padx=40,pady=10)
             c.set('1')
             tk.Label(imageframe, text='SELECT IMAGE PATH',font=('',20)).grid(row=3,column=2,padx=40,pady=10)
@@ -407,327 +495,379 @@ def setting(mainframe):
             exit_button = ck.CTkButton(imageframe, text="EXIT",
                                        command=lambda: (imageframe.destroy(), mainwindow()))
             exit_button.grid(row=0, column=0)
-
+        #security(imagechange)
+        mainframe.destroy()
+        imagechange()
 
 
     def settings_for_self():
         read_refresher_for_count()
-        security(4)
+        #security(4)
+        
         global nameset
         def nameset():
-            def upd_name():
-                n1=str(name1e.get())
-                n2 = str(name2e.get())
-                n3 = str(name3e.get())
-                n4 = str(name4e.get())
-                n5 = str(name5e.get())
-                l=[n1,n2,n3,n4,n5]
-                server=con.cursor()
-                for i in range(1,6):
-                    sql="update nominees set nomname=(%s) where ide=(%s)"
-                    query=(str((l[i-1])),i)
+            def upd_name(namew,id):
+                name=str(namew.get())
+                print('Name is : ',name)
+                if name.strip()=='':
+                    messagebox.showerror('',"Name Not changed becuase empty string!")
+                    return 0
+                try:
+                    server=con.cursor()
+                    
+                    sql="update nominees set nomname=(?) where id=(?)"
+                    query=(name,id)
                     server.execute(sql,query)
                     con.commit()
 
-                messagebox.showinfo('',"Name changed !")
+                    messagebox.showinfo('',"Name changed !")
+                except Exception as e:
+                    messagebox.showerror('',"Name Not changed !")
+                    print(e)
+                    pass
+                finally:
+                    server.close()
 
 
-            nameframe=tk.Frame(root1,bg="#D6F6F2")
-            nameframe.pack(pady=100)
+
+            nameframe=tk.Frame(root1,bg="#D6F6F2",height=2000,width=2000)
+            nameframe.pack(fill='both',anchor='center',padx=100,pady=100)
             read_refresher_for_count()
 
-            global nominee_1_name, nominee_2_name, nominee_3_name, nominee_4_name, nominee_5_name
+            ROW=1            
+            def on_select(new_name,id):
 
-            nominee_1_name = nominee_1_name
-            nominee_2_name = nominee_2_name
-            nominee_3_name = nominee_3_name
-            nominee_4_name = nominee_4_name
-            nominee_5_name = nominee_5_name
+                name_in.delete(0,tk.END)
+                name_in.insert(0, f"{str(new_name)}")
 
-            ides = 'rkking'
-            passwords = '1234'
+                button= ck.CTkButton(nameframe, text="UPDATE", command=lambda entry=name_in, id=id: upd_name(entry, id))
+                button.grid(row=ROW,column=3,padx=40,pady=10)
+                
+            spinbox = ttk.Menubutton(nameframe, text="Select")
+            spinbox.menu = tk.Menu(spinbox, tearoff=False)
+            spinbox["menu"] = spinbox.menu
+            name_in=ck.CTkEntry(nameframe,width=200)
+            name_in.grid(row=1,column=2,padx=40,pady=10)
+            spinbox.grid(row=1,column=0,padx=40,pady=10)
+           
+            for i in (NOMINEES_INFO):
+            
+                spinbox.menu.add_radiobutton(label=f"{i['NOMINEE_ID']}", command=lambda : on_select(i['NOMINEE_NAME'],i['NOMINEE_ID']))
 
-            name1 = ck.CTkLabel(nameframe, text='NOMINEE 1 ',font=('',40))
-            name1.grid(row=2,column=2,padx=40,pady=10)
-            name1e = ck.CTkEntry(nameframe,font=('',30))
-            name1e.insert(tk.END, str(nominee_1_name))
-            name1e.grid(row=2,column=4,padx=40,pady=10)
-
-            name2 = ck.CTkLabel(nameframe, text='NOMINEE 2 ',font=('',40))
-            name2.grid(row=3,column=2,padx=40,pady=10)
-            name2e = ck.CTkEntry(nameframe,font=('',30))
-            name2e.insert(tk.END, str(nominee_2_name))
-            name2e.grid(row=3,column=4,padx=40,pady=10)
-
-            name3 = ck.CTkLabel(nameframe, text='NOMINEE 3 ',font=('',40))
-            name3.grid(row=4,column=2,padx=40,pady=10)
-            name3e = ck.CTkEntry(nameframe,font=('',30))
-            name3e.insert(tk.END, str(nominee_3_name))
-            name3e.grid(row=4,column=4,padx=40,pady=10)
-
-            name4 = ck.CTkLabel(nameframe, text='NOMINEE 4 ',font=('',40))
-            name4.grid(row=5,column=2,padx=40,pady=10)
-            name4e = ck.CTkEntry(nameframe,font=('',30))
-            name4e.insert(tk.END, str(nominee_4_name))
-            name4e.grid(row=5,column=4,padx=40,pady=10)
-
-            name5 = ck.CTkLabel(nameframe, text='NOMINEE 5 ',font=('',40))
-            name5.grid(row=6,column=2,padx=40,pady=10)
-            name5e = ck.CTkEntry(nameframe,font=('',30))
-            name5e.insert(tk.END, str(nominee_5_name))
-            name5e.grid(row=6,column=4,padx=40,pady=10)
-            upd_button = ck.CTkButton(nameframe, text="update", command=upd_name)
-            upd_button.grid(row=7,column=4,padx=40,pady=40)
+                
+                
             exit_button = ck.CTkButton(nameframe, text="EXIT",
                                        command=lambda: (nameframe.destroy(), mainwindow()))
             exit_button.grid(row=0, column=0)
+        nameset()
+        mainframe.destroy()
+    
+    def SET_DEL_NOM():
+        read_refresher_for_count()
+        #security(4)
+        
+        global nameset
+        def del_to_DB():
+            def upd_name(id):
+                
+                
+                if not id:
+                    messagebox.showerror('',"Nominee Not  becuase empty !")
+                    return 0
+                try:
+                    server = con.cursor()
+                    sql = "DELETE FROM nominees WHERE id = ?"
+                    id = int(id)
+                    server.execute(sql, (id,))
+                    con.commit()
+                    if server.rowcount > 0:
+                        messagebox.showinfo('', "Nominee Deleted Successfully !")
+                        selected_id_V.configure(text='')
+                        selected_Name_V.configure(text='')
+                        # button.destroy()
+                    else:
+                        messagebox.showinfo('', "No nominee found with id = 6")
+
+
+                except Exception as e:
+                    messagebox.showerror('',"Nominee Not Deleted!")
+                    print(e)
+                    pass
+                finally:
+                    server.close()
+
+
+
+            nameframe=tk.Frame(root1,bg="#D6F6F2",height=2000,width=2000)
+            nameframe.pack(fill='both',anchor='center',padx=100,pady=100)
+            read_refresher_for_count()
+
+            ROW=5           
+            def on_select(id):
+                selected_id_V.configure(text=f'{id}')
+                selected_Name_V.configure(text=f'{id}')
+
+           
+
+                button= ck.CTkButton(nameframe, text="DELETE", command=lambda  id=id: upd_name( id))
+                button.grid(row=ROW,column=3,padx=40,pady=20)
+                
+            spinbox = ttk.Menubutton(nameframe, text="Select")
+            spinbox.menu = tk.Menu(spinbox, tearoff=False)
+            spinbox["menu"] = spinbox.menu
+            
+            spinbox.grid(row=1,column=0,padx=40,pady=10)
+
+            selected_id_L=ck.CTkLabel(nameframe,text='SELECTED NOM ID : ')
+            selected_Name_L=ck.CTkLabel(nameframe,text='SELECTED NOM NAME : ')
+            selected_id_V=ck.CTkLabel(nameframe,text='')
+            selected_Name_V=ck.CTkLabel(nameframe,text='')
+
+            selected_id_L.grid(row=3,column=1,padx=40,pady=10)
+            selected_Name_L.grid(row=4,column=1,padx=40,pady=10)
+            selected_id_V.grid(row=3,column=2,padx=40,pady=10)
+            selected_Name_V.grid(row=4,column=2,padx=40,pady=10)
+            print('Nominee info is : ',NOMINEES_INFO)
+           
+            for i in (NOMINEES_INFO):
+            
+                spinbox.menu.add_radiobutton(label=f"{i['NOMINEE_ID']}", command=lambda : on_select(i['NOMINEE_ID']))
+
+                
+                
+            exit_button = ck.CTkButton(nameframe, text="EXIT",
+                                       command=lambda: (nameframe.destroy(), mainwindow()))
+            exit_button.grid(row=0, column=0)
+        del_to_DB()
+        mainframe.destroy()
+    
+    def  setting_for_add_nom():
+        global FILEPATH_LOGO
+
+        FILEPATH_LOGO=None
+        mainframe.destroy()
+        def Add_Nom_data_to_db(name,fpath):
+            def convert_binary(filepath):
+                        try:
+                            with open(filepath, 'rb') as f:
+                                binarydata = f.read()
+                                return binarydata
+                        except Exception as e:
+                            messagebox.showerror('warning on binary function !', f'{e}')
+            try:
+                cursor=con.cursor()
+
+                sql="INSERT INTO nominees(nomname,nomresult,img) values (?,?,?)"
+                logobin=convert_binary(fpath)
+                data=(name,0,logobin)
+
+                cursor.execute(sql,data)
+                
+                
+                
+                print('ok')
+                messagebox.showinfo('Info','Added success')
+                con.commit()
+              
+            except Exception as e:
+                print('Error in nom add Section : ',e)
+                con.rollback()
+                cursor.close()
+
+        def Nom_name_change_f():
+            Nom_name=nom_name_i.get()
+            
+
+
+            if Nom_name.strip() and FILEPATH_LOGO:
+
+                Add_Nom_data_to_db(Nom_name,FILEPATH_LOGO)
+
+                pass
+        def ask_Nom_logo_path():
+            global FILEPATH_LOGO
+            
+            filepath=filedialog.askopenfilename(filetypes=[("JPG File","*.jpg"),("PNG File","*.png"),("Image Files","*.webp")])
+            if filepath:
+                        messagebox.showinfo('','Path selected!')
+                        FILEPATH_LOGO=filepath
+                       
+            else:
+                messagebox.showinfo('','Operation Cancelled by the User')
+
+        add_nom_frame=tk.Frame(root1)
+        add_nom_frame.pack()
+
+        nom_name_l=ck.CTkLabel(add_nom_frame,text='Enter Nominee Name ')
+        nom_name_i=ck.CTkEntry(add_nom_frame)
+        
+
+        nom_logo_l=ck.CTkLabel(add_nom_frame,text='Select Logo ')
+        nom_logo_i=ck.CTkButton(add_nom_frame,text='Select path',command=ask_Nom_logo_path)
+
+        nom_add_btn=ck.CTkButton(add_nom_frame,command=Nom_name_change_f)
+
+        nom_name_l.grid(row=1,column=1,padx=20,pady=40)
+        nom_name_i.grid(row=1,column=2,padx=20,pady=50)
+
+        nom_logo_l.grid(row=2,column=1,padx=20,pady=40)
+        nom_logo_i.grid(row=2,column=2,padx=20,pady=50)
+        nom_add_btn.grid(row=3,column=3,padx=20,pady=10)
+
+        pass
 
 
 
     def show_menu():
+        root1=window
         global set_buttons
+       
 
         menubar = tk.Menu(root1, tearoff=0,bg='#D6F6F2',font=('',10,'bold'))
-        menubar.add_command(label="APPEND", command=append)
-        menubar.add_command(label="RESET ALL", command=resetall)
-        menubar.add_command(label="LOGS", command=logs)
-        menubar.add_command(label="RESULT", command=results)
-        menubar.add_command(label="EXIT", command=lambda: root1.destroy())
-        menubar.add_command(label="NAME CHANGE", command=settings_for_self)
+        
+        EDIT_VOTER=tk.Menu(root1,tearoff=0,bg='#D6F6F2',font=('',10,'bold'))
+        EDIT_VOTER.add_command(label="ADD VOTER   ", command=Add_voter)
 
-        menubar.add_command(label="IMAGE CHANGE", command=settings_for_self_image)
+        DB_INFO=tk.Menu(root1,tearoff=0,bg='#D6F6F2',font=('',10,'bold'))
+        DB_INFO.add_command(label="LOGS", command=logs)
+        DB_INFO.add_command(label="RESULT Page", command=results)
+        DB_INFO.add_command(label="RESET ALL RESULT", command=resetall)
+        menubar.add_command(label="EXIT", command=lambda: root1.destroy())
+
+        NOMINEE_EDIT=tk.Menu(root1,tearoff=0,bg='#D6F6F2',font=('',10,'bold'))
+
+        NOMINEE_EDIT.add_command(label="ADD NOMINEE", command=lambda : setting_for_add_nom())
+        NOMINEE_EDIT.add_command(label="DEL NOMINEE", command=SET_DEL_NOM)
+        NOMINEE_EDIT.add_command(label="UPD NOM NAME", command=settings_for_self)
+        NOMINEE_EDIT.add_command(label="UPD NOM IMAGE", command=settings_for_self_image)
+
+        menubar.add_cascade(label='Nominee Edit',menu=NOMINEE_EDIT)
+        menubar.add_cascade(label='Voters Edit',menu=EDIT_VOTER)
+        menubar.add_cascade(label='Database Info',menu=DB_INFO)
 
         menubar.post(set_buttons.winfo_rootx(), set_buttons.winfo_rooty() + set_buttons.winfo_height())
+        
 
     show_menu()
 
 
-def voting_page():
-
-    votingframe=tk.Frame(root1,bg='#D6F6F2')
-    votingframe.pack()
-    global nominee_1, nominee_2, nominee_3, nominee_4, nominee_5, nom1_label, nom2_label, nom3_label, nom4_label, nom5_label, nom3_button, nom3_label, nom1_button, nom2_button, nom3_button, nom4_button, nom5_button
-    # destroy()
-    global photo_5_
-    global photo_5_, photo_4_, photo_3_, photo_2_, photo_1_
-
-    def put_vote(b):
-
-        global nominee_1, nominee_2, nominee_3, nominee_4, nominee_5
-
-        if b == 0:
-            messagebox.showinfo("Message", "Voted Nominee_1 ! ")
-
-            nominee_1 = nominee_1 + 1
+# MAIN FRAME
 
 
+def mainwindow():
+    root1=window
+    clear_frame.clear_frame(window)
+
+    read_refresher_for_count()
+
+    global button, adhar_label, dob_label, adhar_entry, dob_entry
+
+    mainframe=tk.Frame(root1,bg='#D6F6F2',height=600,width=1000)
+    mainframe.pack(anchor="center",pady=100,padx=100,fill='both',ipadx=300)
+
+    global set_buttons
+
+    set_buttons = ck.CTkButton(mainframe, text='Setting', command=lambda : (setting(mainframe)))
+    set_buttons.grid(row=0,column=0,padx=10,pady=10)
+   
+    adhar_label = ck.CTkLabel(mainframe, text="USERNAME", font=('', 30, 'bold'))
+    adhar_label.grid(row=2,column=2,padx=100,pady=20,sticky='w')
+    global adhar_entry
+
+    adhar_entry = ck.CTkEntry(mainframe, height=40, width=300)
+    adhar_entry.grid(row=3,column=2,padx=200)
+
+    dob_label = ck.CTkLabel(mainframe, text='PASSWORD', font=('', 30, 'bold'))
+    dob_label.grid(row=4,column=2,padx=100,pady=20,sticky='w')
+
+    dob_entry = ck.CTkEntry(mainframe,show='*', height=40, width=300)
+    dob_entry.grid(row=5,column=2,padx=200,pady=1,columnspan=40)
 
 
-
-        elif b == 1:
-            messagebox.showinfo("Message", "Vorted Nominee_2 ! ")
-
-            nominee_2 = nominee_2 + 1
-
-        elif b == 2:
-            messagebox.showinfo("Message", "Vorted Nominee_3 ! ")
-
-            nominee_3 = nominee_3 + 1
-
-        elif b == 3:
-            messagebox.showinfo("Message", "Voted Nominee_4 ! ")
-
-            nominee_4 = nominee_4 + 1
+    button = ck.CTkButton(mainframe, text='Enter', height=40, width=100, command=lambda: (condition_checkers(mainframe)))
+    button.grid(row=6,column=2,padx=40,pady=10,columnspan=40)
 
 
-        elif b == 4:
-            messagebox.showinfo("Message", "Voted Nota ! ")
+# APP TITLE
+def title():
+    mainframe2=tk.Frame(window,bg='#D6F6F2')
+    mainframe2.pack(anchor="n",fill='both')
 
-            nominee_5 = nominee_5 + 1
+    title=ck.CTkLabel(mainframe2,text="ELECTION MANAGEMENT SYSTEM", width=1500,font=('', 40))
+    title.grid(row=0,column=0,padx=40,pady=5,ipadx=50,sticky='nw')
 
-
-        else:
-            messagebox.showinfo("Message", "Voted Nota ! ")
-
-
-        try:
-
-            server = con.cursor()
-            list_data = [(nominee_1, 1), (nominee_2, 2), (nominee_3, 3), (nominee_4, 4), (nominee_5, 5)]
-            sql = "update nominees set nomresult= %s where ide= %s"
-            for i, j in list_data:
-                print(i, j)
-                data = (i, j)
-                server.execute(sql, data)
-                con.commit()
-        except Exception as e:
-            messagebox.showwarning('',f'{type(e).__name__}')
-
-        read_refresher_for_count()
-        mainwindow()
-        #voting_page()
-
-
-
-
-    print('nom1 name is ', nominee_1_name)
-    nom1_label = ck.CTkLabel(votingframe, text="NOMINEE 1 : " + nominee_1_name,height=5,width=40, font=("Times New Roman", 25, "bold"))
-    nom2_label = ck.CTkLabel(votingframe, text="NOMINEE 2 : " + nominee_2_name, height=5,width=40,font=("Times New Roman", 25, "bold"))
-    nom3_label = ck.CTkLabel(votingframe, text="NOMINEE 3 : " + nominee_3_name, height=5,width=40,font=("Times New Roman", 25, "bold"))
-    nom4_label = ck.CTkLabel(votingframe, text="NOMINEE 4 : " + nominee_4_name, height=5,width=40,font=("Times New Roman", 25, "bold"))
-    nom5_label = ck.CTkLabel(votingframe, text="NOMINEE 5 : " + nominee_5_name, height=5,width=40,font=("Times New Roman", 25, "bold"))
-
-    nom1_label.grid(row=2,column=4,padx=100,pady=20)
-    nom2_label.grid(row=3,column=4,padx=100,pady=20)
-    nom3_label.grid(row=4,column=4,padx=100,pady=20)
-    nom4_label.grid(row=5,column=4,padx=100,pady=20)
-    nom5_label.grid(row=6,column=4,padx=100,pady=20)
-
-    global logo_label_1, logo_label_2, logo_label_3, logo_label_4, logo_label_5
-
-    logo_label_1 = tk.Button(votingframe, image=photo_1_)
-    logo_label_2 = tk.Label(votingframe, image=photo_2_)
-    logo_label_3 = tk.Label(votingframe, image=photo_3_)
-    logo_label_4 = tk.Label(votingframe, image=photo_4_)
-    logo_label_5 = tk.Label(votingframe, image=photo_5_)
-
-    logo_label_1.grid(row=2,column=2,padx=100,pady=20)
-    logo_label_2.grid(row=3,column=2,padx=100,pady=20)
-    logo_label_3.grid(row=4,column=2,padx=100,pady=20)
-    logo_label_4.grid(row=5,column=2,padx=100,pady=20)
-    logo_label_5.grid(row=6,column=2,padx=100,pady=20)
-
-    nom1_button = tk.Button(votingframe, text='vote', image=photo2, command=lambda: (votingframe.destroy(),put_vote(0)))
-
-    nom2_button = tk.Button(votingframe, text='vote', image=photo2, command=lambda: (votingframe.destroy(),put_vote(1)))
-    nom3_button = tk.Button(votingframe, text='vote', image=photo2, command=lambda: (votingframe.destroy(),put_vote(2)))
-    nom4_button = tk.Button(votingframe, text='vote', image=photo2, command=lambda: (votingframe.destroy(),put_vote(3)))
-    nom5_button = tk.Button(votingframe, text='vote', image=photo2, command=lambda: (votingframe.destroy(),put_vote(4)))
-
-    nom1_button.grid(row=2,column=8,padx=100,pady=20)
-    nom2_button.grid(row=3,column=8,padx=100,pady=20)
-    nom3_button.grid(row=4,column=8,padx=100,pady=20)
-    nom4_button.grid(row=5,column=8,padx=100,pady=20)
-    nom5_button.grid(row=6,column=8,padx=100,pady=20)
+# CONDITION CHECKING FUNCTIONS 
 
 
 def condition_checkers(mainframe):
 
+    def remove_voter(id):
 
-
-    def id_remover(a):
-        try:
-            import time
-            server=con.cursor()
-            time=time.ctime()
-            sql="insert into logindetails(logername,logertime) values (%s,%s)"
-            values=(str(adhar_data),str(time))
-            server.execute(sql,values)
-            con.commit()
-        except Exception as e:
-            print(type(e))
-            messagebox.showerror('','logindetails issues founded !')
-
-        a = 1
+        server=con.cursor()
+        sql2="UPDATE voters SET STATUS='voted' where votername=(?)"
+        value=(str(adhar_data),)
+        server.execute(sql2,value)
+        con.commit()
+        server.close()
+        print('updated successfully')
+    
+    def add_log(id):
+        import time
+        server=con.cursor()
+        sql2="INSERT INTO logindetails(logername,logertime) VALUES (?,?)"
+        value=(str(id),str(time.ctime()))
+        server.execute(sql2,value)
+        con.commit()
+        server.close()
+        print('voter added')
 
 
     adhar_data: str = str(adhar_entry.get())
     dob_data: str = str(dob_entry.get())
     adhar_entry.delete(0, tk.END)
     dob_entry.delete(0, tk.END)
-    print("selected at voters")
-    mainframe.destroy()
+    
+    
 
     server = con.cursor()
-    sql = "select * from voters"
-    server.execute(sql)
-    result = (server.fetchall())
 
-    for i in range(0, len(result)):
-        a = result[i][0]
-        b = result[i][1]
-        c = adhar_data
-        d = dob_data
-
-        if (result):
-            print("its also true da")
-            dummy = str(result[i][1])
-            print(adhar_data, dob_data)
-            print('a', a, 'b', b, 'c', c, 'd', d)
-            if a == c and b == d:
-                print("condition True")
-                messagebox.showinfo("Message", "Welcome To Voting ! ")
-                voting_page()
-                id_remover(1)
-                break
-
-        if (result):
-            if a == c and b != d:
-                messagebox.showwarning("Message", "Incorrect passward ! ")
-                print("showed succesfully ! ")
-                mainwindow()
-
-                break
+    sql="""SELECT CASE 
+    WHEN COUNT(*) > 0 THEN True
+    ELSE False
+    END AS result
+    FROM voters 
+    WHERE votername = ? AND voterpass = ? AND STATUS='notvoted'"""
+    values=(adhar_data,dob_data)
 
 
+    server.execute(sql,values)
+    result = server.fetchall()
+    print(result)
+
+    #try:
+
+    if (result[0][0]):
+
+        messagebox.showinfo("Message", "Welcome To Voting ! ")
+        mainframe.destroy()
+        
+        voting_page()
+        #remove_voter(adhar_data) # remove voter
+        add_log(adhar_data) # add log details
+
+        
     else:
-        mainwindow()
-        id_remover(1)
         messagebox.showwarning("Messagebox", "User Not Found")
+            
+    # except Exception as e:
+    #     print('error: loginsection',e)
+    # finally:
+    #     server.close()
 
-
-
-
-
-
-global mainwindow
-def mainwindow():
-
-
-
-
-
+if __name__=='__main__':
+    title()
     read_refresher_for_count()
-
-    global button, adhar_label, dob_label, adhar_entry, dob_entry
-    mainframe=tk.Frame(root1,bg='#D6F6F2')
-    mainframe.pack(anchor="center",pady=100)
-    global set_buttons
-    set_buttons = ck.CTkButton(mainframe, text='Setting', command=lambda : (setting(mainframe)))
-    set_buttons.grid(row=0,column=0,padx=10,pady=10)
-    title=ck.CTkLabel(mainframe,text="ELECTION MANAGEMENT SYSTEM", font=('', 40, 'bold'))
-    #title.grid(row=1,columnspan=8,padx=50,pady=100)
-    dummylabel = ck.CTkLabel(mainframe, text=None)
-    #dummylabel.grid(padx=0,pady=150)
-
-
-    # labels for mainwindow
-    adhar_label = ck.CTkLabel(mainframe, text="ENTER ADHAAR NUMBER ", font=('', 30, 'bold'))
-    # adhar_label.pack(anchor="center")
-    adhar_label.grid(row=2,column=2,padx=40,pady=50)
-    global adhar_entry
-
-    adhar_entry = ck.CTkEntry(mainframe, height=40, width=300)
-    # adhar_entry.pack(anchor="center")
-    adhar_entry.grid(row=2,column=3,padx=80,pady=20)
-    dob_label = ck.CTkLabel(mainframe, text='ENTER DOB                          ', font=('', 30, 'bold'))
-    # dob_label.pack(anchor="center")
-    dob_label.grid(row=4,column=2,padx=40,pady=20)
-    dob_entry = ck.CTkEntry(mainframe, height=40, width=300)
-    # dob_entry.pack(anchor="center")
-    dob_entry.grid(row=4,column=3,padx=80,pady=10)
-    dummylabel = ck.CTkLabel(mainframe, text=None)
-
-    button = ck.CTkButton(mainframe, text='Enter', height=40, width=100, command=lambda: (condition_checkers(mainframe)))
-    # button.pack(anchor="center")
-    button.grid(row=6,column=3,padx=100,pady=20)
-    # button.destroy()
-
-
-
-read_refresher_for_count()
-mainwindow()
-
-#voting_page()
-
-root1.mainloop()
+    mainwindow()
+    #voting_page()
+    #mainwindow(window)
+    window.mainloop()
